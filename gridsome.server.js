@@ -1,10 +1,3 @@
-// Server API makes it possible to hook into various parts of Gridsome
-// on server-side and add custom data to the GraphQL data layer.
-// Learn more: https://gridsome.org/docs/server-api/
-
-// Changes here require a server restart.
-// To restart press CTRL + C in terminal and run `gridsome develop`
-
 const axios = require("axios");
 
 function slugify(string) {
@@ -26,28 +19,37 @@ function slugify(string) {
     .replace(/-+$/, ""); // Trim - from end of text
 }
 
-module.exports = function (api) {
-  api.loadSource(({ addCollection }) => {
-    // Use the Data Store API here: https://gridsome.org/docs/data-store-api/
-  })
+module.exports = function(api) {
+  api.loadSource(async actions => {
+    const tagsCollection = actions.addCollection("Tag");
+    const quotesCollection = actions.addCollection("Quote");
+
+    const { data } = await axios.get(`https://api.tronalddump.io/tag`);
+    const tags = data._embedded;
+
+    for (const tag of tags) {
+      tagsCollection.addNode({
+        id: slugify(tag),
+        title: tag
+      });
+      const tagUrl = `https://api.tronalddump.io/tag/${encodeURI(tag)}`;
+      const { data } = await axios.get(tagUrl);
+      const quotes = data._embedded.tags;
+
+      for (const quote of quotes) {
+        quotesCollection.addNode({
+          tag: tag,
+          appeared_at: quote.appeared_at,
+          created_at: quote.created_at,
+          quote_id: quote.quote_id,
+          updated_at: quote.updated_at,
+          value: quote.value
+        });
+      }
+    }
+  });
 
   api.createPages(({ createPage }) => {
     // Use the Pages API here: https://gridsome.org/docs/pages-api/
-  })
-
-  api.createManagedPages(async ({ createPage }) => {
-    const { data } = await axios.get("https://api.tronalddump.io/tag");
-
-    data._embedded.forEach(tag => {
-      const slug = `/${slugify(tag)}/`;
-      createPage({
-        path: slug,
-        component: "./src/templates/Tag.vue",
-        context: {
-          title: tag,
-          slug
-        }
-      });
-    });
   });
-}
+};

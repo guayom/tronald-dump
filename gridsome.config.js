@@ -5,6 +5,9 @@
 // To restart press CTRL + C in terminal and run `gridsome develop`
 
 module.exports = {
-  siteName: 'Tronald Dump',
-  plugins: []
-}
+  siteName: "Tronald Dump",
+  plugins: [],
+  templates: {
+    Tag: "/:id"
+  }
+};
